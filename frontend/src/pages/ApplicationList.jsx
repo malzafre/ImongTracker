@@ -1,16 +1,32 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Plus, Trash2, PencilLine } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
-import { Plus, Trash2, Edit } from 'lucide-react';
 import ApplicationModal from '../components/ApplicationModal';
-
-const statuses = ['Wishlist', 'Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Select } from '../components/ui/select';
+import { statuses, getStatusStyle } from '../lib/status';
 
 const ApplicationList = () => {
   const { applications, loading, updateApplication, deleteApplication } = useApplications();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState(null);
 
-  if (loading) return <div style={{ padding: '2rem' }}>Loading applications...</div>;
+  const summary = useMemo(() => {
+    const byStatus = statuses.reduce((acc, status) => {
+      acc[status] = applications.filter((app) => app.status === status).length;
+      return acc;
+    }, {});
+    return byStatus;
+  }, [applications]);
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-10 text-center text-foreground-muted shadow-sm">
+        Loading applications...
+      </div>
+    );
+  }
 
   const handleOpenModal = (app = null) => {
     setEditingApp(app);
@@ -23,75 +39,112 @@ const ApplicationList = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>All Applications</h2>
-        <button 
-          onClick={() => handleOpenModal()}
-          style={{ 
-            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-            background: 'var(--color-primary)', color: '#fff', 
-            padding: '0.5rem 1rem', borderRadius: 'var(--border-radius)', fontWeight: 'bold'
-          }}
-        >
-          <Plus size={18} /> New Application
-        </button>
-      </div>
+    <div>
+      <header className="page-header">
+        <div>
+          <p className="page-eyebrow">Tracking</p>
+          <h1 className="page-title">Applications Table</h1>
+          <p className="page-subtitle">Fast edits, clean overview, no clutter.</p>
+        </div>
+        <Button onClick={() => handleOpenModal()} className="rounded-xl px-5">
+          <Plus size={16} /> New application
+        </Button>
+      </header>
 
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--border-radius)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border-color)' }}>
-            <tr>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Company</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Role</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Status</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Date Applied</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Actions</th>
+      <section className="mb-4 flex flex-wrap gap-2">
+        {statuses.map((status) => {
+          const palette = getStatusStyle(status);
+          return (
+            <Badge
+              key={status}
+              variant="outline"
+              className="rounded-full border px-3 py-1 text-xs"
+              style={{ borderColor: `${palette.accent}40`, color: palette.accent, background: palette.soft }}
+            >
+              {status} • {summary[status] ?? 0}
+            </Badge>
+          );
+        })}
+      </section>
+
+      <div className="table-shell overflow-x-auto">
+        <table className="w-full min-w-[780px] border-collapse text-left">
+          <thead>
+            <tr className="border-b border-border bg-background text-xs uppercase tracking-wider text-foreground-subtle">
+              <th className="px-4 py-3 font-semibold">Company</th>
+              <th className="px-4 py-3 font-semibold">Role</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Date Applied</th>
+              <th className="px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {applications.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No applications found. Add one!</td>
+                <td colSpan="5" className="px-4 py-12 text-center text-sm text-foreground-muted">
+                  No applications yet. Add your first one to build momentum.
+                </td>
               </tr>
-            ) : applications.map(app => (
-              <tr key={app.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '1rem', fontWeight: '500' }}>{app.company}</td>
-                <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{app.title}</td>
-                <td style={{ padding: '1rem' }}>
-                  <select 
-                    value={app.status} 
-                    onChange={(e) => updateApplication(app.id, { status: e.target.value })}
-                    style={{ 
-                      padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-base)', 
-                      border: '1px solid var(--border-color)', color: 'var(--text-primary)' 
-                    }}
+            ) : (
+              applications.map((app, idx) => {
+                const palette = getStatusStyle(app.status);
+                return (
+                  <tr
+                    key={app.id}
+                    className="table-row animate-fade-up border-b border-border"
+                    style={{ animationDelay: `${idx * 45}ms` }}
                   >
-                    {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </td>
-                <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                  {app.dateApplied ? new Date(app.dateApplied).toLocaleDateString() : 'N/A'}
-                </td>
-                <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleOpenModal(app)} style={{ color: 'var(--color-primary)', padding: '0.25rem', background: 'rgba(52, 211, 153, 0.1)', borderRadius: '4px' }}>
-                    <Edit size={18} />
-                  </button>
-                  <button onClick={() => deleteApplication(app.id)} style={{ color: '#dc2626', padding: '0.25rem', background: 'rgba(220, 38, 38, 0.1)', borderRadius: '4px' }}>
-                    <Trash2 size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    <td className="px-4 py-3 font-semibold text-foreground">{app.company}</td>
+                    <td className="px-4 py-3 text-foreground-muted">{app.title}</td>
+                    <td className="px-4 py-3">
+                      <Select
+                        value={app.status}
+                        onChange={(e) => updateApplication(app.id, { status: e.target.value })}
+                        className="h-9 w-[148px] rounded-lg text-xs font-semibold"
+                        style={{ borderColor: `${palette.accent}55` }}
+                      >
+                        {statuses.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </Select>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-foreground-muted">
+                      {app.dateApplied ? new Date(app.dateApplied).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleOpenModal(app)}
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg"
+                          aria-label="Edit application"
+                        >
+                          <PencilLine size={15} />
+                        </Button>
+                        <Button
+                          onClick={() => deleteApplication(app.id)}
+                          variant="soft"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg text-danger"
+                          aria-label="Delete application"
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
 
-      <ApplicationModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        applicationToEdit={editingApp} 
-      />
+      <ApplicationModal isOpen={isModalOpen} onClose={handleCloseModal} applicationToEdit={editingApp} />
     </div>
   );
 };

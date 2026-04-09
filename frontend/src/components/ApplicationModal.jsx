@@ -1,75 +1,156 @@
-import React, { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
+import { statuses } from '../lib/status';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select } from './ui/select';
+import { Textarea } from './ui/textarea';
 
-const statuses = ['Wishlist', 'Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
+const defaultFormData = {
+  company: '',
+  title: '',
+  status: 'Applied',
+  salary: '',
+  notes: '',
+};
 
-const defaultFormData = { company: '', title: '', status: 'Applied', salary: '', notes: '' };
-
-const ApplicationModal = ({ isOpen, onClose, applicationToEdit }) => {
+const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
   const { addApplication, updateApplication } = useApplications();
 
-  const initialData = useMemo(
-    () => applicationToEdit ?? defaultFormData,
-    [applicationToEdit]
-  );
+  const initialData = useMemo(() => {
+    if (applicationToEdit) {
+      return {
+        company: applicationToEdit.company ?? '',
+        title: applicationToEdit.title ?? '',
+        status: applicationToEdit.status ?? 'Applied',
+        salary: applicationToEdit.salary ?? '',
+        notes: applicationToEdit.notes ?? '',
+      };
+    }
+
+    return defaultFormData;
+  }, [applicationToEdit]);
 
   const [formData, setFormData] = useState(initialData);
 
-  // Reset form data when the modal opens or the edit target changes
-  if (isOpen && formData !== initialData && formData._syncKey !== initialData) {
-    setFormData({ ...initialData, _syncKey: initialData });
-  }
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  if (!isOpen) return null;
+    const submissionData = {
+      company: formData.company.trim(),
+      title: formData.title.trim(),
+      status: formData.status,
+      salary: formData.salary.trim(),
+      notes: formData.notes.trim(),
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { _syncKey, ...submissionData } = formData;
     if (applicationToEdit) {
       await updateApplication(applicationToEdit.id, submissionData);
     } else {
       await addApplication(submissionData);
     }
+
     onClose();
   };
 
   return (
-    <div style={{ 
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-      background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 
-    }}>
-      <div style={{ 
-        background: 'var(--bg-surface)', padding: '2rem', borderRadius: 'var(--border-radius)', 
-        width: '100%', maxWidth: '500px', boxShadow: 'var(--shadow-md)' 
-      }}>
-        <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
-          {applicationToEdit ? 'Edit Application' : 'Add New Application'}
-        </h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input required placeholder="Company Name" value={formData.company || ''} onChange={e => setFormData({...formData, company: e.target.value})} style={inputStyle} />
-          <input required placeholder="Job Title" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} style={inputStyle} />
-          <select value={formData.status || 'Applied'} onChange={e => setFormData({...formData, status: e.target.value})} style={inputStyle}>
-            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <input placeholder="Salary / Comp (e.g. $80k - $100k)" value={formData.salary || ''} onChange={e => setFormData({...formData, salary: e.target.value})} style={inputStyle} />
-          <textarea placeholder="Notes / Links" value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} style={{...inputStyle, minHeight: '100px'}} />
-          
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button type="button" onClick={onClose} style={{ padding: '0.5rem 1rem', color: 'var(--text-secondary)' }}>Cancel</button>
-            <button type="submit" style={{ background: 'var(--color-primary)', color: '#fff', padding: '0.5rem 1.5rem', borderRadius: 'var(--border-radius)' }}>
-              {applicationToEdit ? 'Save Changes' : 'Save Application'}
-            </button>
-          </div>
-        </form>
+    <div className="w-full max-w-xl animate-fade-up rounded-2xl border border-border bg-surface p-5 shadow-md sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-bold tracking-tight text-foreground">
+            {applicationToEdit ? 'Edit Application' : 'Add New Application'}
+          </h3>
+          <p className="mt-1 text-sm text-foreground-muted">Keep details concise now, enrich notes later.</p>
+        </div>
+        <Button
+          type="button"
+          onClick={onClose}
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg"
+          aria-label="Close modal"
+        >
+          <X size={15} />
+        </Button>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Input
+            required
+            placeholder="Company"
+            value={formData.company}
+            onChange={(event) => setFormData({ ...formData, company: event.target.value })}
+          />
+          <Input
+            required
+            placeholder="Role / Title"
+            value={formData.title}
+            onChange={(event) => setFormData({ ...formData, title: event.target.value })}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Select
+            value={formData.status}
+            onChange={(event) => setFormData({ ...formData, status: event.target.value })}
+          >
+            {statuses.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </Select>
+
+          <Input
+            placeholder="Salary / Comp"
+            value={formData.salary}
+            onChange={(event) => setFormData({ ...formData, salary: event.target.value })}
+          />
+        </div>
+
+        <Textarea
+          placeholder="Notes, links, prep reminders"
+          value={formData.notes}
+          onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
+          className="min-h-28"
+        />
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <Button type="button" onClick={onClose} variant="ghost" className="rounded-xl">
+            Cancel
+          </Button>
+          <Button type="submit" className="rounded-xl px-5">
+            {applicationToEdit ? 'Save changes' : 'Save application'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
 
-const inputStyle = {
-  width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius)',
-  border: '1px solid var(--border-color)', background: 'var(--bg-base)',
-  color: 'var(--text-primary)', outline: 'none'
+const ApplicationModal = ({ isOpen, onClose, applicationToEdit }) => {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <ApplicationModalForm
+        key={applicationToEdit?.id ?? 'new'}
+        onClose={onClose}
+        applicationToEdit={applicationToEdit}
+      />
+    </div>
+  );
 };
 
 export default ApplicationModal;

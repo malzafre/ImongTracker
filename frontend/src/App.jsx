@@ -1,7 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Kanban, List, Sun, Moon, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Kanban,
+  List,
+  Sun,
+  Moon,
+  LogOut,
+  Sparkles,
+  BriefcaseBusiness,
+} from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
+import { ApplicationProvider } from './context/ApplicationContext';
 import { useAuth } from './context/useAuth';
 import './index.css';
 
@@ -9,73 +19,74 @@ import Dashboard from './pages/Dashboard';
 import KanbanBoard from './pages/KanbanBoard';
 import ApplicationList from './pages/ApplicationList';
 import Login from './pages/Login';
+import { Button } from './components/ui/button';
+
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/kanban', label: 'Kanban Board', icon: Kanban },
+  { to: '/list', label: 'Table View', icon: List },
+];
 
 const Sidebar = ({ theme, toggleTheme }) => {
   const { logout } = useAuth();
 
   return (
-    <aside style={{ 
-      width: '260px', 
-      background: 'var(--bg-surface)', 
-      borderRight: '1px solid var(--border-color)',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '1.5rem'
-    }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', color: 'var(--color-primary)' }}>
-        <LayoutDashboard size={24} />
-        ImongTracker
-      </h2>
-      
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-        <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 'var(--border-radius)', color: 'var(--text-secondary)' }}>
-          <LayoutDashboard size={20} />
-          Dashboard
-        </Link>
-        <Link to="/kanban" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 'var(--border-radius)', color: 'var(--text-secondary)' }}>
-          <Kanban size={20} />
-          Kanban Board
-        </Link>
-        <Link to="/list" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 'var(--border-radius)', color: 'var(--text-secondary)' }}>
-          <List size={20} />
-          Table View
-        </Link>
+    <aside className="sidebar">
+      <div className="mb-5 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+        <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <BriefcaseBusiness size={18} />
+        </div>
+        <h2 className="text-lg font-extrabold tracking-tight">ImongTracker</h2>
+        <p className="mt-1 text-xs text-foreground-muted">Minimal tracking for focused job search momentum.</p>
+      </div>
+
+      <nav className="flex flex-1 flex-col gap-1">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}
+            >
+              <Icon size={18} />
+              <span className="text-sm font-medium">{item.label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <button 
+
+      <div className="mt-3 flex flex-col gap-2 border-t border-border pt-4">
+        <Button
           onClick={toggleTheme}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', 
-            borderRadius: 'var(--border-radius)', color: 'var(--text-secondary)',
-            background: 'transparent', width: '100%', textAlign: 'left'
-          }}
+          variant="secondary"
+          className="w-full justify-start rounded-xl border-border bg-background text-foreground-muted hover:text-foreground"
         >
-          {theme === 'light' ? <Moon size={20}/> : <Sun size={20}/>}
-          Toggle Mode
-        </button>
-        <button 
+          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          {theme === 'light' ? 'Dark mode' : 'Light mode'}
+        </Button>
+        <Button
           onClick={logout}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', 
-            borderRadius: 'var(--border-radius)', color: '#dc2626',
-            background: 'rgba(220, 38, 38, 0.1)', width: '100%', textAlign: 'left',
-            fontWeight: '600', cursor: 'pointer', border: 'none'
-          }}
+          variant="soft"
+          className="w-full justify-start rounded-xl text-danger hover:text-danger"
         >
-          <LogOut size={20}/>
+          <LogOut size={16} />
           Logout
-        </button>
+        </Button>
+        <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground-subtle">
+          <Sparkles size={14} />
+          Keep it consistent, keep it moving.
+        </div>
       </div>
     </aside>
   );
 };
 
 const AppLayout = ({ children, theme, toggleTheme }) => (
-  <div className="app-container">
+  <div className="app-shell">
     <Sidebar theme={theme} toggleTheme={toggleTheme} />
-    <main className="main-content">
-      {children}
+    <main className="main-panel">
+      <div className="mx-auto w-full max-w-[1340px]">{children}</div>
     </main>
   </div>
 );
@@ -113,8 +124,6 @@ function AppContent() {
     </Routes>
   );
 }
-
-import { ApplicationProvider } from './context/ApplicationContext';
 
 function App() {
   return (

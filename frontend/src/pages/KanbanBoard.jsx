@@ -1,38 +1,57 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { GripVertical, Trash2, PencilLine, Plus } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
-import { GripVertical, Edit, Trash2 } from 'lucide-react';
 import ApplicationModal from '../components/ApplicationModal';
-
-const statuses = ['Wishlist', 'Applied', 'Screening', 'Interview', 'Offer', 'Rejected'];
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { statuses, getStatusStyle } from '../lib/status';
 
 const KanbanBoard = () => {
   const { applications, loading, updateApplication, deleteApplication } = useApplications();
   const [draggedAppId, setDraggedAppId] = useState(null);
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState(null);
 
-  if (loading) return <div style={{ padding: '2rem' }}>Loading board...</div>;
+  const grouped = useMemo(
+    () =>
+      statuses.reduce((acc, status) => {
+        acc[status] = applications.filter((application) => application.status === status);
+        return acc;
+      }, {}),
+    [applications]
+  );
 
-  const handleDragStart = (e, id) => {
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border bg-surface p-10 text-center text-foreground-muted shadow-sm">
+        Loading board...
+      </div>
+    );
+  }
+
+  const handleDragStart = (event, id) => {
     setDraggedAppId(id);
-    e.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = async (e, newStatus) => {
-    e.preventDefault();
-    if (draggedAppId) {
-      const app = applications.find(a => a.id === draggedAppId);
-      if (app && app.status !== newStatus) {
-        await updateApplication(draggedAppId, { status: newStatus });
-      }
-      setDraggedAppId(null);
+  const handleDrop = async (event, newStatus) => {
+    event.preventDefault();
+    if (!draggedAppId) {
+      return;
     }
+
+    const target = applications.find((app) => app.id === draggedAppId);
+    if (target && target.status !== newStatus) {
+      await updateApplication(draggedAppId, { status: newStatus });
+    }
+
+    setDraggedAppId(null);
   };
 
   const handleOpenModal = (app = null) => {
@@ -46,93 +65,120 @@ const KanbanBoard = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
-      <h2>Kanban Board</h2>
-      
-      <div style={{ 
-        display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem', 
-        height: 'calc(100vh - 200px)', minHeight: '500px'
-      }}>
-        {statuses.map(status => (
-          <div 
-            key={status}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, status)}
-            style={{ 
-              background: 'var(--bg-surface)', borderRadius: 'var(--border-radius)', 
-              minWidth: '300px', width: '300px', display: 'flex', flexDirection: 'column',
-              boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{ 
-              padding: '1rem', background: 'var(--bg-base)', borderBottom: '1px solid var(--border-color)',
-              fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              {status}
-              <span style={{ 
-                background: 'var(--color-primary)', color: '#fff', fontSize: '0.8rem', 
-                padding: '0.2rem 0.6rem', borderRadius: '1rem' 
-              }}>
-                {applications.filter(a => a.status === status).length}
-              </span>
-            </div>
+    <div>
+      <header className="page-header">
+        <div>
+          <p className="page-eyebrow">Pipeline</p>
+          <h1 className="page-title">Kanban Workflow</h1>
+          <p className="page-subtitle">Drag cards across stages and keep your pipeline visible.</p>
+        </div>
+        <Button onClick={() => handleOpenModal()} className="rounded-xl px-5">
+          <Plus size={16} /> Add application
+        </Button>
+      </header>
 
-            <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1 }}>
-              {applications.filter(app => app.status === status).map(app => (
-                <div 
-                  key={app.id} 
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, app.id)}
-                  style={{
-                    background: 'var(--bg-base)', padding: '1rem', borderRadius: '8px',
-                    border: '1px solid var(--border-color)', cursor: 'grab',
-                    transition: 'transform 0.2s, box-shadow 0.2s', position: 'relative'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h4 style={{ margin: 0, color: 'var(--text-primary)', wordBreak: 'break-word', paddingRight: '1rem' }}>{app.title}</h4>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button onClick={(e) => { e.stopPropagation(); handleOpenModal(app); }} style={{ color: 'var(--color-primary)', padding: '0', background: 'none' }}>
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); deleteApplication(app.id); }} style={{ color: '#dc2626', padding: '0', background: 'none' }}>
-                        <Trash2 size={16} />
-                      </button>
-                      <GripVertical size={16} color="var(--text-secondary)" style={{ cursor: 'grab', marginLeft: '0.25rem' }} />
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        {statuses.map((status, columnIndex) => {
+          const palette = getStatusStyle(status);
+          const entries = grouped[status] ?? [];
+
+          return (
+            <section
+              key={status}
+              onDragOver={handleDragOver}
+              onDrop={(event) => handleDrop(event, status)}
+              className="animate-fade-up"
+              style={{ animationDelay: `${columnIndex * 70}ms` }}
+            >
+              <Card className="h-[calc(100vh-200px)] min-h-[500px] w-[320px] overflow-hidden">
+                <CardHeader className="border-b border-border bg-background py-3">
+                  <CardTitle className="flex items-center justify-between text-sm font-semibold">
+                    <span>{status}</span>
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border px-2.5 py-1"
+                      style={{ borderColor: `${palette.accent}45`, color: palette.accent, background: palette.soft }}
+                    >
+                      {entries.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="flex h-full flex-col gap-3 overflow-y-auto p-3">
+                  {entries.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border bg-background p-4 text-center text-xs text-foreground-subtle">
+                      Drop an application here
                     </div>
-                  </div>
-                  <p style={{ margin: '0.5rem 0', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '0.9rem' }}>{app.company}</p>
-                  
-                  {app.salary && (
-                    <div style={{ display: 'inline-block', padding: '0.2rem 0.5rem', background: 'rgba(52, 211, 153, 0.1)', color: 'var(--color-primary)', borderRadius: '4px', fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                      {app.salary}
-                    </div>
+                  ) : (
+                    entries.map((app, rowIndex) => (
+                      <article
+                        key={app.id}
+                        draggable
+                        onDragStart={(event) => handleDragStart(event, app.id)}
+                        className="group animate-fade-up rounded-xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lift"
+                        style={{ animationDelay: `${rowIndex * 35}ms` }}
+                      >
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <h3 className="break-words text-sm font-semibold text-foreground">{app.title}</h3>
+                          <div className="flex items-center gap-1 text-foreground-subtle">
+                            <Button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleOpenModal(app);
+                              }}
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-md"
+                              aria-label="Edit application"
+                            >
+                              <PencilLine size={14} />
+                            </Button>
+                            <Button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                deleteApplication(app.id);
+                              }}
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-md text-danger hover:text-danger"
+                              aria-label="Delete application"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                            <GripVertical size={14} className="opacity-60" />
+                          </div>
+                        </div>
+
+                        <p className="text-sm font-medium text-foreground-muted">{app.company}</p>
+
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          {app.salary ? (
+                            <Badge
+                              variant="outline"
+                              className="rounded-full px-2.5 py-1 text-[11px]"
+                              style={{ borderColor: `${palette.accent}40`, color: palette.accent, background: palette.soft }}
+                            >
+                              {app.salary}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-foreground-subtle">No salary</span>
+                          )}
+
+                          <span className="text-[11px] text-foreground-subtle">
+                            {app.dateApplied ? new Date(app.dateApplied).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                      </article>
+                    ))
                   )}
-                  
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '1rem', textAlign: 'right' }}>
-                    {app.dateApplied ? new Date(app.dateApplied).toLocaleDateString() : 'N/A'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+                </CardContent>
+              </Card>
+            </section>
+          );
+        })}
       </div>
 
-      <ApplicationModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        applicationToEdit={editingApp} 
-      />
+      <ApplicationModal isOpen={isModalOpen} onClose={handleCloseModal} applicationToEdit={editingApp} />
     </div>
   );
 };

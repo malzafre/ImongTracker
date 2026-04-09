@@ -1,68 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  /* Common Variables */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family: 'Manrope', 'Inter', 'Segoe UI', sans-serif;
   --transition-speed: 0.2s;
-  --border-radius: 8px;
-  
-  /* System Mode Toggle - these will be default (Light Mode) */
-  --bg-base: #F4F7F4;
-  --bg-surface: #FCFDFD;
-  --color-primary: #2D7A4D; /* Forest Green */
+  --border-radius: 14px;
+  --sidebar-width: 272px;
+
+  --bg-base: #f4f7f4;
+  --bg-surface: #fcfdfd;
+  --bg-muted: #ecf2ec;
+
+  --color-primary: #2d7a4d;
   --color-primary-hover: #225e3b;
-  --text-primary: #1C201C;
-  --text-secondary: #5A605A;
-  --border-color: #E2E8E2;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --color-primary-soft: rgba(45, 122, 77, 0.12);
+  --color-primary-soft-hover: rgba(45, 122, 77, 0.2);
+  --color-primary-faint: rgba(45, 122, 77, 0.24);
+  --color-primary-foreground: #ffffff;
+
+  --text-primary: #1c201c;
+  --text-secondary: #556155;
+  --text-tertiary: #798679;
+
+  --border-color: #dbe4db;
+  --danger: #c62828;
+
+  --shadow-sm: 0 3px 10px rgba(13, 21, 14, 0.06);
+  --shadow-md: 0 12px 34px rgba(13, 21, 14, 0.12);
+  --shadow-lift: 0 10px 22px rgba(27, 45, 30, 0.14);
+  --shadow-inner-soft: inset 0 1px 2px rgba(13, 21, 14, 0.05);
 }
 
 [data-theme='dark'] {
-  --bg-base: #1A1C1A;
-  --bg-surface: #282B28;
-  --color-primary: #7FE0A8; /* Mint Green */
+  --bg-base: #1a1f1a;
+  --bg-surface: #252b25;
+  --bg-muted: #1f241f;
+
+  --color-primary: #7fe0a8;
   --color-primary-hover: #9cf5bd;
-  --text-primary: #E8ECE8;
-  --text-secondary: #A0A5A0;
-  --border-color: #383c38;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --color-primary-soft: rgba(127, 224, 168, 0.15);
+  --color-primary-soft-hover: rgba(127, 224, 168, 0.24);
+  --color-primary-faint: rgba(127, 224, 168, 0.34);
+  --color-primary-foreground: #102115;
+
+  --text-primary: #e8ece8;
+  --text-secondary: #a8b2a8;
+  --text-tertiary: #879487;
+
+  --border-color: #334033;
+  --danger: #ff7070;
+
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.38);
+  --shadow-lift: 0 12px 30px rgba(0, 0, 0, 0.34);
+  --shadow-inner-soft: inset 0 1px 2px rgba(0, 0, 0, 0.32);
 }
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 body {
+  margin: 0;
   font-family: var(--font-family);
-  background-color: var(--bg-base);
   color: var(--text-primary);
+  background:
+    radial-gradient(circle at 8% -10%, rgba(45, 122, 77, 0.1), transparent 36%),
+    radial-gradient(circle at 82% 4%, rgba(45, 122, 77, 0.08), transparent 34%),
+    var(--bg-base);
   transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
-  text-decoration: none;
   color: inherit;
+  text-decoration: none;
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-/* App Layout Skeleton */
-.app-container {
-  display: flex;
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: rgba(85, 97, 85, 0.35);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.4rem 1rem;
+  border-right: 1px solid var(--border-color);
+  background: linear-gradient(180deg, rgba(252, 253, 253, 0.88) 0%, var(--bg-surface) 42%);
+  backdrop-filter: blur(10px);
+}
+
+[data-theme='dark'] .sidebar {
+  background: linear-gradient(180deg, rgba(37, 43, 37, 0.92) 0%, var(--bg-surface) 42%);
+}
+
+.main-panel {
+  min-width: 0;
+  padding: 1.25rem 1.5rem 2rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 12px;
+  padding: 0.68rem 0.85rem;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  transition: all 200ms ease;
+}
+
+.sidebar-link:hover {
+  transform: translateY(-1px);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  background: var(--bg-base);
+}
+
+.sidebar-link-active {
+  color: var(--color-primary);
+  border-color: var(--color-primary-faint);
+  background: var(--color-primary-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.page-eyebrow {
+  margin-bottom: 0.2rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.page-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.95rem);
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.table-shell {
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 2rem;
+.table-row {
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.table-row:hover {
+  transform: translateY(-1px);
+  background: rgba(45, 122, 77, 0.04);
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem;
+  }
+
+  .main-panel {
+    padding: 1rem 1rem 1.75rem;
+  }
 }
