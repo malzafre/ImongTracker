@@ -13,7 +13,7 @@ const getRowsPerPage = (height) => {
   if (height >= 1050) return 14;
   if (height >= 920) return 12;
   if (height >= 780) return 10;
-  return 8;
+  return 7;
 };
 
 const ApplicationList = () => {
