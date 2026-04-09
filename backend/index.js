@@ -241,6 +241,10 @@ app.use((err, req, res, next) => {
   return sendError(res, 500, 'Unexpected server error.');
 });
 
-app.listen(PORT, () => {
-  console.log(`JobTracker Backend running connected to Firebase on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`ImongCareer backend running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

@@ -53,7 +53,7 @@ const Sidebar = ({ theme, toggleTheme }) => {
           <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
             <BriefcaseBusiness size={18} />
           </div>
-          <h2 className="text-lg font-extrabold tracking-tight">ImongTracker</h2>
+          <h2 className="text-lg font-extrabold tracking-tight">ImongCareer</h2>
           <p className="mt-1 text-xs text-foreground-muted">Minimal tracking for focused job search momentum.</p>
         </div>
       </SidebarHeader>
@@ -114,7 +114,7 @@ const MobileHeader = ({ theme, toggleTheme }) => {
     <header className="mobile-header">
       <div className="flex items-center gap-2 text-primary">
         <BriefcaseBusiness size={16} />
-        <span className="text-sm font-extrabold tracking-tight text-foreground">ImongTracker</span>
+        <span className="text-sm font-extrabold tracking-tight text-foreground">ImongCareer</span>
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={toggleTheme} variant="secondary" size="sm" className="rounded-lg px-2.5">
@@ -170,15 +170,18 @@ function AppContent() {
   const { currentUser } = useAuth();
 
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('imong-tracker-theme');
-    if (savedTheme) return savedTheme;
+    const savedTheme = localStorage.getItem('imong-career-theme') || localStorage.getItem('imong-tracker-theme');
+    if (savedTheme) {
+      return savedTheme;
+    }
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
     return 'light';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('imong-tracker-theme', theme);
+    localStorage.setItem('imong-career-theme', theme);
+    localStorage.removeItem('imong-tracker-theme');
   }, [theme]);
 
   const toggleTheme = () => {

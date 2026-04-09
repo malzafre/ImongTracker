@@ -46,7 +46,7 @@ const Login = () => {
               <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
                 <BriefcaseBusiness size={20} />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Welcome to ImongTracker</h1>
+              <h1 className="text-2xl font-extrabold tracking-tight">Welcome to ImongCareer</h1>
               <p className="mt-2 text-sm text-foreground-muted">
                 Minimal workflow for modern job search tracking.
               </p>
