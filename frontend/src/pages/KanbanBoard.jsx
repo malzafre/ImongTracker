@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import { GripVertical, Trash2, PencilLine, Plus } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
 import ApplicationModal from '../components/ApplicationModal';
+import ApplicationDetailsModal from '../components/ApplicationDetailsModal';
+import BrandEmptyState from '../components/BrandEmptyState';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -12,6 +15,8 @@ const KanbanBoard = () => {
   const [draggedAppId, setDraggedAppId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState(null);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
 
   const grouped = useMemo(
     () =>
@@ -64,6 +69,41 @@ const KanbanBoard = () => {
     setEditingApp(null);
   };
 
+  const handleOpenDetails = (app) => {
+    setSelectedApp(app);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedApp(null);
+  };
+
+  const handleEditFromDetails = (app) => {
+    setSelectedApp(null);
+    handleOpenModal(app);
+  };
+
+  const handleDeleteFromDetails = async (app) => {
+    setDeleteCandidate(app);
+    setSelectedApp(null);
+  };
+
+  const requestDelete = (app) => {
+    setDeleteCandidate(app);
+  };
+
+  const cancelDelete = () => {
+    setDeleteCandidate(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteCandidate) {
+      return;
+    }
+
+    await deleteApplication(deleteCandidate.id);
+    setDeleteCandidate(null);
+  };
+
   return (
     <div>
       <header className="page-header">
@@ -77,8 +117,16 @@ const KanbanBoard = () => {
         </Button>
       </header>
 
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {statuses.map((status, columnIndex) => {
+      {applications.length === 0 ? (
+        <BrandEmptyState
+          title="Your board is empty"
+          description="Create your first application and drag it across stages as you progress."
+          actionLabel="Create application"
+          onAction={() => handleOpenModal()}
+        />
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {statuses.map((status, columnIndex) => {
           const palette = getStatusStyle(status);
           const entries = grouped[status] ?? [];
 
@@ -115,6 +163,7 @@ const KanbanBoard = () => {
                         key={app.id}
                         draggable
                         onDragStart={(event) => handleDragStart(event, app.id)}
+                        onClick={() => handleOpenDetails(app)}
                         className="group animate-fade-up rounded-xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lift"
                         style={{ animationDelay: `${rowIndex * 35}ms` }}
                       >
@@ -136,7 +185,7 @@ const KanbanBoard = () => {
                             <Button
                               onClick={(event) => {
                                 event.stopPropagation();
-                                deleteApplication(app.id);
+                                requestDelete(app);
                               }}
                               variant="ghost"
                               size="icon"
@@ -175,10 +224,28 @@ const KanbanBoard = () => {
               </Card>
             </section>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       <ApplicationModal isOpen={isModalOpen} onClose={handleCloseModal} applicationToEdit={editingApp} />
+      <ApplicationDetailsModal
+        isOpen={Boolean(selectedApp)}
+        onClose={handleCloseDetails}
+        application={selectedApp}
+        onEdit={handleEditFromDetails}
+        onDelete={handleDeleteFromDetails}
+      />
+      <ConfirmDialog
+        isOpen={Boolean(deleteCandidate)}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        title="Delete application?"
+        description={deleteCandidate
+          ? `This will permanently remove ${deleteCandidate.title} at ${deleteCandidate.company}.`
+          : 'This action cannot be undone.'}
+        confirmLabel="Delete"
+      />
     </div>
   );
 };

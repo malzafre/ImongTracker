@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
 import { statuses } from '../lib/status';
@@ -12,6 +13,7 @@ const defaultFormData = {
   title: '',
   status: 'Applied',
   salary: '',
+  sourceLink: '',
   notes: '',
 };
 
@@ -25,6 +27,7 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
         title: applicationToEdit.title ?? '',
         status: applicationToEdit.status ?? 'Applied',
         salary: applicationToEdit.salary ?? '',
+        sourceLink: applicationToEdit.sourceLink ?? '',
         notes: applicationToEdit.notes ?? '',
       };
     }
@@ -42,6 +45,7 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
       title: formData.title.trim(),
       status: formData.status,
       salary: formData.salary.trim(),
+      sourceLink: formData.sourceLink.trim(),
       notes: formData.notes.trim(),
     };
 
@@ -110,6 +114,12 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
           />
         </div>
 
+        <Input
+          placeholder="Source link (job posting URL)"
+          value={formData.sourceLink}
+          onChange={(event) => setFormData({ ...formData, sourceLink: event.target.value })}
+        />
+
         <Textarea
           placeholder="Notes, links, prep reminders"
           value={formData.notes}
@@ -135,7 +145,7 @@ const ApplicationModal = ({ isOpen, onClose, applicationToEdit }) => {
     return null;
   }
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]"
       onMouseDown={(event) => {
@@ -151,6 +161,8 @@ const ApplicationModal = ({ isOpen, onClose, applicationToEdit }) => {
       />
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default ApplicationModal;

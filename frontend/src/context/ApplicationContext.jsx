@@ -6,25 +6,67 @@ import { ApplicationContext } from './useApplications';
 export const ApplicationProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Initial fetch — uses promise chaining so no synchronous setState in effect body
-  useEffect(() => {
-    if (!currentUser) return;
+  const normalizeApplications = (payload) => {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
 
+    if (Array.isArray(payload?.applications)) {
+      return payload.applications;
+    }
+
+    return [];
+  };
+
+  const sortByDateDesc = (items) => {
+    return [...items].sort((a, b) => {
+      const aDate = a?.dateApplied ? new Date(a.dateApplied).getTime() : 0;
+      const bDate = b?.dateApplied ? new Date(b.dateApplied).getTime() : 0;
+      return bDate - aDate;
+    });
+  };
+
+  useEffect(() => {
     let active = true;
 
-    applicationsApi.getAll()
-      .then(data => {
-        if (active) setApplications(data);
-      })
-      .catch(err => {
+    const syncApplications = async () => {
+      if (!currentUser) {
+        if (active) {
+          setApplications([]);
+          setError(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (active) {
+        setLoading(true);
+        setError(null);
+      }
+
+      try {
+        const data = await applicationsApi.getAll();
+
+        if (active) {
+          const normalized = normalizeApplications(data);
+          setApplications(sortByDateDesc(normalized));
+        }
+      } catch (err) {
         if (active) {
           console.error(err);
           setError(err.message);
         }
-      });
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    syncApplications();
 
     return () => { active = false; };
   }, [currentUser]);
@@ -33,9 +75,11 @@ export const ApplicationProvider = ({ children }) => {
   const fetchApplications = async () => {
     if (!currentUser) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await applicationsApi.getAll();
-      setApplications(data);
+      const normalized = normalizeApplications(data);
+      setApplications(sortByDateDesc(normalized));
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -48,7 +92,7 @@ export const ApplicationProvider = ({ children }) => {
       ...newApp,
       dateApplied: new Date().toISOString()
     });
-    setApplications(prev => [created, ...prev]);
+    setApplications(prev => sortByDateDesc([created, ...prev]));
     return created;
   };
 
