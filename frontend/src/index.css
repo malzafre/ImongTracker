@@ -304,6 +304,10 @@ textarea {
   overflow: hidden;
 }
 
+.laptop-table-shell {
+  overflow-x: auto;
+}
+
 .table-row {
   transition: transform 180ms ease, background-color 180ms ease;
 }
@@ -329,5 +333,11 @@ textarea {
   .mobile-header,
   .mobile-bottom-nav {
     display: flex;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1440px) {
+  .laptop-table-shell {
+    overflow-x: hidden;
   }
 }

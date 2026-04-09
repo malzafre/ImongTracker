@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { CalendarDays, CircleDollarSign, Link2, NotebookText, PencilLine, Trash2, X } from 'lucide-react';
+import { CalendarDays, CircleDollarSign, Link2, NotebookText, PencilLine, Trash2, UserRound, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { getStatusStyle } from '../lib/status';
@@ -79,6 +79,17 @@ const ApplicationDetailsModal = ({ isOpen, onClose, application, onEdit, onDelet
               </a>
             ) : (
               <p className="text-sm text-foreground-muted">No source link added.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wider text-foreground-subtle">Linked Contact</p>
+            {application.contactName?.trim() ? (
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-foreground-muted">
+                <UserRound size={13} /> {application.contactName}
+              </p>
+            ) : (
+              <p className="text-sm text-foreground-muted">No contact linked.</p>
             )}
           </div>
 

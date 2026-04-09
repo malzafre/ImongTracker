@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { Link2, UserPlus, X } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
+import { useContacts } from '../context/useContacts';
 import { statuses } from '../lib/status';
+import ContactModal from './ContactModal';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select } from './ui/select';
@@ -14,11 +16,14 @@ const defaultFormData = {
   status: 'Applied',
   salary: '',
   sourceLink: '',
+  contactId: '',
+  contactName: '',
   notes: '',
 };
 
 const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
   const { addApplication, updateApplication } = useApplications();
+  const { contacts } = useContacts();
 
   const initialData = useMemo(() => {
     if (applicationToEdit) {
@@ -28,6 +33,8 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
         status: applicationToEdit.status ?? 'Applied',
         salary: applicationToEdit.salary ?? '',
         sourceLink: applicationToEdit.sourceLink ?? '',
+        contactId: applicationToEdit.contactId ?? '',
+        contactName: applicationToEdit.contactName ?? '',
         notes: applicationToEdit.notes ?? '',
       };
     }
@@ -36,9 +43,12 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
   }, [applicationToEdit]);
 
   const [formData, setFormData] = useState(initialData);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    const selectedContact = contacts.find((contact) => contact.id === formData.contactId);
 
     const submissionData = {
       company: formData.company.trim(),
@@ -46,6 +56,8 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
       status: formData.status,
       salary: formData.salary.trim(),
       sourceLink: formData.sourceLink.trim(),
+      contactId: formData.contactId,
+      contactName: selectedContact?.name ?? formData.contactName ?? '',
       notes: formData.notes.trim(),
     };
 
@@ -114,11 +126,50 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
           />
         </div>
 
-        <Input
-          placeholder="Source link (job posting URL)"
-          value={formData.sourceLink}
-          onChange={(event) => setFormData({ ...formData, sourceLink: event.target.value })}
-        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+          <Input
+            placeholder="Source link (job posting URL)"
+            value={formData.sourceLink}
+            onChange={(event) => setFormData({ ...formData, sourceLink: event.target.value })}
+          />
+          <div className="hidden items-center text-xs font-semibold text-foreground-subtle sm:flex">
+            <Link2 size={13} />
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-xl border border-border bg-background p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-foreground-subtle">Linked Contact</p>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 rounded-lg px-3"
+              onClick={() => setIsContactModalOpen(true)}
+            >
+              <UserPlus size={14} /> Create contact
+            </Button>
+          </div>
+
+          <Select
+            value={formData.contactId || '__none'}
+            onChange={(event) => {
+              const nextId = event.target.value === '__none' ? '' : event.target.value;
+              const selected = contacts.find((contact) => contact.id === nextId);
+              setFormData((prev) => ({
+                ...prev,
+                contactId: nextId,
+                contactName: selected?.name ?? '',
+              }));
+            }}
+          >
+            <option value="__none">No linked contact</option>
+            {contacts.map((contact) => (
+              <option key={contact.id} value={contact.id}>
+                {contact.name}{contact.company ? ` - ${contact.company}` : ''}
+              </option>
+            ))}
+          </Select>
+        </div>
 
         <Textarea
           placeholder="Notes, links, prep reminders"
@@ -136,6 +187,19 @@ const ApplicationModalForm = ({ onClose, applicationToEdit }) => {
           </Button>
         </div>
       </form>
+
+      <ContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        defaultCompany={formData.company.trim()}
+        onSaved={(contact) => {
+          setFormData((prev) => ({
+            ...prev,
+            contactId: contact.id,
+            contactName: contact.name,
+          }));
+        }}
+      />
     </div>
   );
 };

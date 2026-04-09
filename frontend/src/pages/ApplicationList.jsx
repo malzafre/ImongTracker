@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, PencilLine, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApplications } from '../context/useApplications';
 import ApplicationModal from '../components/ApplicationModal';
@@ -9,7 +9,12 @@ import { Button } from '../components/ui/button';
 import { Select } from '../components/ui/select';
 import { statuses, getStatusStyle } from '../lib/status';
 
-const PAGE_SIZE = 8;
+const getRowsPerPage = (height) => {
+  if (height >= 1050) return 14;
+  if (height >= 920) return 12;
+  if (height >= 780) return 10;
+  return 8;
+};
 
 const ApplicationList = () => {
   const { applications, loading, updateApplication, deleteApplication } = useApplications();
@@ -18,6 +23,7 @@ const ApplicationList = () => {
   const [selectedApp, setSelectedApp] = useState(null);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
 
   const summary = useMemo(() => {
     const byStatus = statuses.reduce((acc, status) => {
@@ -27,13 +33,20 @@ const ApplicationList = () => {
     return byStatus;
   }, [applications]);
 
-  const totalPages = Math.max(1, Math.ceil(applications.length / PAGE_SIZE));
+  useEffect(() => {
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const pageSize = getRowsPerPage(viewportHeight);
+  const totalPages = Math.max(1, Math.ceil(applications.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   const paginatedApplications = useMemo(() => {
-    const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
-    return applications.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [applications, safeCurrentPage]);
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return applications.slice(startIndex, startIndex + pageSize);
+  }, [applications, safeCurrentPage, pageSize]);
 
   if (loading) {
     return (
@@ -117,7 +130,7 @@ const ApplicationList = () => {
           })}
         </div>
 
-        {applications.length > PAGE_SIZE ? (
+        {applications.length > pageSize ? (
           <div className="ml-auto flex items-center gap-2">
             <Button
               type="button"
@@ -129,7 +142,7 @@ const ApplicationList = () => {
               <ChevronLeft size={14} /> Prev
             </Button>
             <span className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground-muted">
-              {safeCurrentPage}/{totalPages}
+              {safeCurrentPage}/{totalPages} • {pageSize}/page
             </span>
             <Button
               type="button"
@@ -144,8 +157,8 @@ const ApplicationList = () => {
         ) : null}
       </section>
 
-      <div className="table-shell overflow-x-auto">
-        <table className="w-full min-w-[780px] border-collapse text-left">
+      <div className="table-shell laptop-table-shell overflow-x-auto">
+        <table className="w-full min-w-[680px] border-collapse text-left lg:min-w-0">
           <thead>
             <tr className="border-b border-border bg-background text-xs uppercase tracking-wider text-foreground-subtle">
               <th className="px-4 py-3 font-semibold">Company</th>
@@ -185,7 +198,7 @@ const ApplicationList = () => {
                         value={app.status}
                         onClick={(event) => event.stopPropagation()}
                         onChange={(e) => updateApplication(app.id, { status: e.target.value })}
-                        className="h-9 w-[148px] rounded-lg text-xs font-semibold"
+                        className="h-9 w-[128px] rounded-lg text-xs font-semibold sm:w-[148px]"
                         style={{ borderColor: `${palette.accent}55` }}
                       >
                         {statuses.map((status) => (

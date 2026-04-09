@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Kanban,
   List,
+  Users,
   Sun,
   Moon,
   LogOut,
@@ -13,12 +14,14 @@ import {
 } from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
 import { ApplicationProvider } from './context/ApplicationContext';
+import { ContactsProvider } from './context/ContactsContext';
 import { useAuth } from './context/useAuth';
 import './index.css';
 
 import Dashboard from './pages/Dashboard';
 import KanbanBoard from './pages/KanbanBoard';
 import ApplicationList from './pages/ApplicationList';
+import Contacts from './pages/Contacts';
 import Login from './pages/Login';
 import { Button } from './components/ui/button';
 import RouteTransition from './components/RouteTransition';
@@ -37,6 +40,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/kanban', label: 'Kanban Board', icon: Kanban },
   { to: '/list', label: 'Table View', icon: List },
+  { to: '/contacts', label: 'Contacts', icon: Users },
 ];
 
 const Sidebar = ({ theme, toggleTheme }) => {
@@ -225,6 +229,18 @@ function AppContent() {
             </PrivateRoute>
           )}
         />
+        <Route
+          path="/contacts"
+          element={(
+            <PrivateRoute>
+              <AppLayout theme={theme} toggleTheme={toggleTheme}>
+                <RouteTransition>
+                  <Contacts />
+                </RouteTransition>
+              </AppLayout>
+            </PrivateRoute>
+          )}
+        />
       </Routes>
     </AnimatePresence>
   );
@@ -234,9 +250,11 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ApplicationProvider>
-          <AppContent />
-        </ApplicationProvider>
+        <ContactsProvider>
+          <ApplicationProvider>
+            <AppContent />
+          </ApplicationProvider>
+        </ContactsProvider>
       </AuthProvider>
     </BrowserRouter>
   );

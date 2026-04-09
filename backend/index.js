@@ -14,9 +14,11 @@ app.use(express.json());
 
 // Main Applications router
 const applicationsRouter = express.Router();
+const contactsRouter = express.Router();
 
 // 1. Enforce authentication on all application routes
 applicationsRouter.use(verifyToken);
+contactsRouter.use(verifyToken);
 
 // 2. GET all applications assigned to the logged-in user
 applicationsRouter.get('/', async (req, res) => {
@@ -95,6 +97,75 @@ applicationsRouter.delete('/:id', async (req, res) => {
 });
 
 app.use('/api/applications', applicationsRouter);
+
+// Contacts router
+contactsRouter.get('/', async (req, res) => {
+  try {
+    const snapshot = await db.collection('contacts')
+      .where('userId', '==', req.user.uid)
+      .get();
+
+    const contacts = [];
+    snapshot.forEach((doc) => {
+      contacts.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.json(contacts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+contactsRouter.post('/', async (req, res) => {
+  try {
+    const newContact = {
+      ...req.body,
+      userId: req.user.uid,
+      createdAt: new Date().toISOString(),
+    };
+
+    const docRef = await db.collection('contacts').add(newContact);
+    res.status(201).json({ id: docRef.id, ...newContact });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+contactsRouter.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const docRef = db.collection('contacts').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists || doc.data().userId !== req.user.uid) {
+      return res.status(403).json({ error: 'Forbidden. You do not own this contact.' });
+    }
+
+    await docRef.update(req.body);
+    res.json({ id, ...req.body });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+contactsRouter.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const docRef = db.collection('contacts').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists || doc.data().userId !== req.user.uid) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    await docRef.delete();
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.use('/api/contacts', contactsRouter);
 
 app.listen(PORT, () => {
   console.log(`JobTracker Backend running connected to Firebase on port ${PORT}`);

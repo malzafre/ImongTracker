@@ -41,3 +41,10 @@ export const applicationsApi = {
   update: (id, data) => apiFetch(`/applications/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/applications/${id}`, { method: 'DELETE' }),
 };
+
+export const contactsApi = {
+  getAll: () => apiFetch('/contacts'),
+  create: (data) => apiFetch('/contacts', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/contacts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/contacts/${id}`, { method: 'DELETE' }),
+};
