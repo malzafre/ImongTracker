@@ -1,16 +1,69 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { db } = require('./firebaseAdmin');
 const verifyToken = require('./middleware/auth');
+const {
+  validateApplicationCreate,
+  validateApplicationUpdate,
+  validateContactCreate,
+  validateContactUpdate,
+} = require('./middleware/validation');
+const { sendError } = require('./utils/http');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const maxRequestsPerWindow = Number(process.env.RATE_LIMIT_MAX || 120);
+const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000);
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
+app.use(rateLimit({
+  windowMs: rateLimitWindowMs,
+  max: maxRequestsPerWindow,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again shortly.' },
+}));
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
+
+app.get('/api/health', (_, res) => {
+  res.json({ ok: true, uptime: process.uptime() });
+});
 
 // Main Applications router
 const applicationsRouter = express.Router();
@@ -35,18 +88,24 @@ applicationsRouter.get('/', async (req, res) => {
     snapshot.forEach(doc => {
       applications.push({ id: doc.id, ...doc.data() });
     });
+
+    applications.sort((a, b) => {
+      const aDate = a.dateApplied ? new Date(a.dateApplied).getTime() : 0;
+      const bDate = b.dateApplied ? new Date(b.dateApplied).getTime() : 0;
+      return bDate - aDate;
+    });
     
     res.json(applications);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to fetch applications.');
   }
 });
 
 // 3. POST a new application
-applicationsRouter.post('/', async (req, res) => {
+applicationsRouter.post('/', validateApplicationCreate, async (req, res) => {
   try {
     const newApplication = {
-      ...req.body,
+      ...req.validatedBody,
       userId: req.user.uid,
       createdAt: new Date().toISOString()
     };
@@ -54,12 +113,12 @@ applicationsRouter.post('/', async (req, res) => {
     const docRef = await db.collection('applications').add(newApplication);
     res.status(201).json({ id: docRef.id, ...newApplication });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to create application.');
   }
 });
 
 // 4. PUT update an application
-applicationsRouter.put('/:id', async (req, res) => {
+applicationsRouter.put('/:id', validateApplicationUpdate, async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection('applications').doc(id);
@@ -67,13 +126,13 @@ applicationsRouter.put('/:id', async (req, res) => {
     // Safety check: ensure user owns this doc
     const doc = await docRef.get();
     if (!doc.exists || doc.data().userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Forbidden. You do not own this application.' });
+      return sendError(res, 403, 'Forbidden. You do not own this application.');
     }
 
-    await docRef.update(req.body);
-    res.json({ id, ...req.body });
+    await docRef.update(req.validatedBody);
+    res.json({ id, ...req.validatedBody });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to update application.');
   }
 });
 
@@ -86,13 +145,13 @@ applicationsRouter.delete('/:id', async (req, res) => {
     // Safety check
     const doc = await docRef.get();
     if (!doc.exists || doc.data().userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
 
     await docRef.delete();
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to delete application.');
   }
 });
 
@@ -110,16 +169,22 @@ contactsRouter.get('/', async (req, res) => {
       contacts.push({ id: doc.id, ...doc.data() });
     });
 
+    contacts.sort((a, b) => {
+      const aName = `${a.name ?? ''}`.toLowerCase();
+      const bName = `${b.name ?? ''}`.toLowerCase();
+      return aName.localeCompare(bName);
+    });
+
     res.json(contacts);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to fetch contacts.');
   }
 });
 
-contactsRouter.post('/', async (req, res) => {
+contactsRouter.post('/', validateContactCreate, async (req, res) => {
   try {
     const newContact = {
-      ...req.body,
+      ...req.validatedBody,
       userId: req.user.uid,
       createdAt: new Date().toISOString(),
     };
@@ -127,24 +192,24 @@ contactsRouter.post('/', async (req, res) => {
     const docRef = await db.collection('contacts').add(newContact);
     res.status(201).json({ id: docRef.id, ...newContact });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to create contact.');
   }
 });
 
-contactsRouter.put('/:id', async (req, res) => {
+contactsRouter.put('/:id', validateContactUpdate, async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection('contacts').doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists || doc.data().userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Forbidden. You do not own this contact.' });
+      return sendError(res, 403, 'Forbidden. You do not own this contact.');
     }
 
-    await docRef.update(req.body);
-    res.json({ id, ...req.body });
+    await docRef.update(req.validatedBody);
+    res.json({ id, ...req.validatedBody });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to update contact.');
   }
 });
 
@@ -155,17 +220,26 @@ contactsRouter.delete('/:id', async (req, res) => {
     const doc = await docRef.get();
 
     if (!doc.exists || doc.data().userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
 
     await docRef.delete();
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendError(res, 500, 'Failed to delete contact.');
   }
 });
 
 app.use('/api/contacts', contactsRouter);
+
+app.use((err, req, res, next) => {
+  if (err && err.message === 'Not allowed by CORS') {
+    return sendError(res, 403, 'Origin not allowed by CORS policy.');
+  }
+
+  console.error(err);
+  return sendError(res, 500, 'Unexpected server error.');
+});
 
 app.listen(PORT, () => {
   console.log(`JobTracker Backend running connected to Firebase on port ${PORT}`);
